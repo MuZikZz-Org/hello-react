@@ -73,23 +73,29 @@ jobs:
     with: 
       workspace: ${{needs.env_workflow.outputs.Workspace_Dir}}
 
-  # Upload_Storage_Account: 
-  #   if: github.event.pull_request.merged != true
-  #   name: "Compress file(zip,tar) and Upload to StorageAccount"
-  #   uses: MuZikZz-Org/action-workflow/.github/workflows/blob-reloader.yaml@main
-
-  Git_Push_Version:
-    needs: [Nodejs_Build,Package_Versioning]
-    name: "Pushing git Version"
-    uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-version.yaml@main
+  Upload_Storage_Account: 
+    needs: [env_workflow,Package_Versioning]
+    name: "Compress file(zip,tar) and Upload to StorageAccount"
+    uses: MuZikZz-Org/action-workflow/.github/workflows/blob-uploader.yaml@main
     with:
+      workspace: ${{needs.env_workflow.outputs.Workspace_Dir}}
+      AZURE_STORAGE_ACC_NAME: ${{needs.env_workflow.outputs.BLOB_STORAGE_ACC}}
+      AZURE_CONTAINER_NAME: ${{needs.env_workflow.outputs.BLOB_CONTAINER_NAME}}
+      APP_NAME: ${{github.event.repository.name}}
       APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
-      Runtime: nodejs 
-      SourceCodeBranch: ${{github.ref_name}}
 
-  Git_Tag:
-    needs: [Git_Push_Version,Package_Versioning]
-    name: "Pushing git tag"
-    uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-tag.yaml@main
-    with:
-      APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
+  # Git_Push_Version:
+  #   needs: [Nodejs_Build,Package_Versioning]
+  #   name: "Pushing git Version"
+  #   uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-version.yaml@main
+  #   with:
+  #     APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
+  #     Runtime: nodejs 
+  #     SourceCodeBranch: ${{github.ref_name}}
+
+  # Git_Tag:
+  #   needs: [Git_Push_Version,Package_Versioning]
+  #   name: "Pushing git tag"
+  #   uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-tag.yaml@main
+  #   with:
+  #     APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
