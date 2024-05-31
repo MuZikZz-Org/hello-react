@@ -50,13 +50,7 @@ jobs:
       - run: |
           echo "preparing output env"
 
-  Az_login_managed_iden: 
-    if: github.event.pull_request.merged != true
-    name: "Calling workflow Azure login with managed identity"
-    uses: MuZikZz-Org/action-workflow/.github/workflows/az-authen-iden-selfhosted.yaml@main
-
   Package_Versioning:
-    if: github.event.pull_request.merged != true
     needs: env_workflow
     name: Package versioning
     uses: MuZikZz-Org/action-workflow/.github/workflows/package-versioning.yaml@main
@@ -66,7 +60,6 @@ jobs:
       workspace: ${{needs.env_workflow.outputs.Workspace_Dir}}
 
   OUTPUT_PackageVersioning:
-    if: github.event.pull_request.merged != true
     runs-on: runner-utility
     needs: Package_Versioning
     steps:
@@ -74,7 +67,6 @@ jobs:
           echo "Package Output form Workflow PackageVersioning: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }}"
           
   Nodejs_Build:
-    if: github.event.pull_request.merged != true
     needs: [env_workflow,Package_Versioning]
     name: Build NodeJS Package
     uses: MuZikZz-Org/action-workflow/.github/workflows/nodejs-build.yaml@main
@@ -87,8 +79,7 @@ jobs:
   #   uses: MuZikZz-Org/action-workflow/.github/workflows/blob-reloader.yaml@main
 
   Git_Push_Version:
-    if: github.event.pull_request.merged != true
-    needs: [Nodejs_Build]
+    needs: [Nodejs_Build,Package_Versioning]
     name: "Pushing git Version"
     uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-version.yaml@main
     with:
@@ -97,8 +88,7 @@ jobs:
       SourceCodeBranch: ${{github.ref_name}}
 
   Git_Tag:
-    if: github.event.pull_request.merged != true
-    needs: [Git_Push_Version]
+    needs: [Git_Push_Version,Package_Versioning]
     name: "Pushing git tag"
     uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-tag.yaml@main
     with:
