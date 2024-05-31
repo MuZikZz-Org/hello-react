@@ -88,18 +88,18 @@ jobs:
       APP_NAME: ${{github.event.repository.name}}
       APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
 
-  # Git_Push_Version:
-  #   needs: [Nodejs_Build,Package_Versioning]
-  #   name: "Pushing git Version"
-  #   uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-version.yaml@main
-  #   with:
-  #     APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
-  #     Runtime: nodejs 
-  #     SourceCodeBranch: ${{github.ref_name}}
+  Git_Push_Version:
+    needs: [Nodejs_Build,Package_Versioning]
+    name: "Pushing git Version"
+    uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-version.yaml@main
+    with:
+      APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
+      Runtime: nodejs 
+      SourceCodeBranch: ${{github.ref_name}}
 
-  # Git_Tag:
-  #   needs: [Git_Push_Version,Package_Versioning]
-  #   name: "Pushing git tag"
-  #   uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-tag.yaml@main
-  #   with:
-  #     APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
+  Git_Tag:
+    needs: [Git_Push_Version,Package_Versioning]
+    name: "Pushing git tag"
+    uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-tag.yaml@main
+    with:
+      APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
