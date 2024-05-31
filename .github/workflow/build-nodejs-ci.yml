@@ -1,0 +1,100 @@
+name: DEV Workflow Azure Batch (Nodejs.)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - 'rc/**'
+
+env: 
+    JobEnvironment: "dev"
+    PackageName: ${{github.event.repository.name}}
+    # ACR
+    AZ_CONTAINER_REGISTRY: ${{ fromJson(vars.JSON).AZ_CONTAINER_REGISTRY }}
+    AZ_CONTAINER_NAME: ${{ fromJson(vars.JSON).AZ_CONTAINER_NAME }}
+    #HELM repo
+    HELM_TEMPLATE_REPO: ${{ fromJson(vars.JSON).HELM_TEMPLATE_REPO }}
+    HELM_TEMPLATE_BRANCH: ${{ fromJson(vars.JSON).HELM_TEMPLATE_BRANCH }}
+    HELM_VALUES_REPO: ${{ fromJson(vars.JSON).HELM_VALUES_REPO }}
+    HELM_VALUES_BRANCH: ${{ fromJson(vars.JSON).HELM_VALUES_BRANCH }}
+    # Azure Blob Stotage 
+    BLOB_STORAGE_ACC: ${{ fromJson(vars.JSON).BLOB_STORAGE_ACC }}
+    BLOB_CONTAINER_NAME: ${{ fromJson(vars.JSON).BLOB_CONTAINER_NAME }}
+    # AKS
+    AKS_RESOURCE_GROUP: ${{ fromJson(vars.JSON).AKS_RESOURCE_GROUP }}
+    AKS_NAME: ${{ fromJson(vars.JSON).AKS_NAME }}
+    ## Define Workspace
+    Workspace_Dir: "shared-workspace"
+
+jobs:
+  env_workflow:
+    runs-on: ubuntu-latest
+    name: Preparation Environment
+    outputs: 
+      user: ${{env.docker_user}}
+      pass: ${{env.docker_password}}
+      JobEnvironment: ${{env.JobEnvironment}}
+      PackageName: ${{env.PackageName}}
+      AZ_CONTAINER_REGISTRY: ${{env.AZ_CONTAINER_REGISTRY}}
+      AZ_CONTAINER_NAME: ${{env.AZ_CONTAINER_NAME}}
+      HELM_TEMPLATE_REPO: ${{env.HELM_TEMPLATE_REPO}}
+      HELM_TEMPLATE_BRANCH: ${{env.HELM_TEMPLATE_BRANCH}}
+      HELM_VALUES_REPO: ${{env.HELM_VALUES_REPO}}
+      HELM_VALUES_BRANCH: ${{env.HELM_VALUES_BRANCH}}
+      BLOB_STORAGE_ACC: ${{env.BLOB_STORAGE_ACC}}
+      BLOB_CONTAINER_NAME: ${{env.BLOB_CONTAINER_NAME}}
+      AKS_RESOURCE_GROUP: ${{ env.AKS_RESOURCE_GROUP }}
+      AKS_NAME: ${{ env.AKS_NAME }}
+      Workspace_Dir: ${{ env.Workspace_Dir }}
+    steps:
+      - run: |
+          echo "preparing output env"
+
+  Az_login_managed_iden: 
+    if: github.event.pull_request.merged != true
+    name: "Calling workflow Azure login with managed identity"
+    uses: MuZikZz-Org/action-workflow/.github/workflows/az-authen-iden-selfhosted.yaml@main
+
+  Package_Versioning:
+    if: github.event.pull_request.merged != true
+    needs: env_workflow
+    name: Package versioning
+    uses: MuZikZz-Org/action-workflow/.github/workflows/package-versioning.yaml@main
+    with:
+      Runtime: nodejs 
+      JobEnvironment: ${{needs.env_workflow.outputs.JobEnvironment}}  #feature-branch 
+      workspace: ${{needs.env_workflow.outputs.Workspace_Dir}}
+
+  OUTPUT_PackageVersioning:
+    if: github.event.pull_request.merged != true
+    runs-on: runner-utility
+    needs: Package_Versioning
+    steps:
+      - run: |
+          echo "Package Output form Workflow PackageVersioning: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }}"
+          
+  Nodejs_Build:
+    if: github.event.pull_request.merged != true
+    needs: [env_workflow,Package_Versioning]
+    name: Build NodeJS Package
+    uses: MuZikZz-Org/action-workflow/.github/workflows/nodejs-build.yaml@main
+    with: 
+      workspace: ${{needs.env_workflow.outputs.Workspace_Dir}}
+
+  Git_Push_Version:
+    if: github.event.pull_request.merged != true
+    needs: [env_workflow,Deploy_helm,Package_Versioning]
+    name: "Pushing git Version"
+    uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-version.yaml@main
+    with:
+      APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
+      Runtime: nodejs 
+      SourceCodeBranch: ${{github.ref_name}}
+
+  Git_Tag:
+    if: github.event.pull_request.merged != true
+    needs: [Deploy_helm,Package_Versioning,Git_Push_Version]
+    name: "Pushing git tag"
+    uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-tag.yaml@main
+    with:
+      APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
