@@ -81,9 +81,14 @@ jobs:
     with: 
       workspace: ${{needs.env_workflow.outputs.Workspace_Dir}}
 
+  # Upload_Storage_Account: 
+  #   if: github.event.pull_request.merged != true
+  #   name: "Compress file(zip,tar) and Upload to StorageAccount"
+  #   uses: MuZikZz-Org/action-workflow/.github/workflows/blob-reloader.yaml@main
+
   Git_Push_Version:
     if: github.event.pull_request.merged != true
-    needs: [env_workflow,Package_Versioning]
+    needs: [Nodejs_Build]
     name: "Pushing git Version"
     uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-version.yaml@main
     with:
@@ -93,7 +98,7 @@ jobs:
 
   Git_Tag:
     if: github.event.pull_request.merged != true
-    needs: [Package_Versioning,Git_Push_Version]
+    needs: [Git_Push_Version]
     name: "Pushing git tag"
     uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-tag.yaml@main
     with:
