@@ -89,7 +89,7 @@ jobs:
       APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
 
   Git_Push_Version:
-    needs: [Nodejs_Build,Package_Versioning]
+    needs: [Upload_Storage_Account,Nodejs_Build,Package_Versioning]
     name: "Pushing git Version"
     uses: MuZikZz-Org/action-workflow/.github/workflows/git-push-version.yaml@main
     with:
