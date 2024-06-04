@@ -123,7 +123,6 @@ jobs:
       AZURE_CONTAINER_NAME: ${{needs.env_workflow.outputs.BLOB_CONTAINER_NAME_AZ_BATCH}}
       APP_NAME: ${{github.event.repository.name}}
       APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
-      workspace: ${{needs.env_workflow.outputs.Workspace_Dir}}
 
   Git_Push_Version:
     needs: [Upload_Storage_Account,Nodejs_Build,Package_Versioning]
