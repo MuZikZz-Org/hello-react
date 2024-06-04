@@ -54,6 +54,42 @@ jobs:
       - run: |
           echo "preparing output env"
 
+  Checkout:
+    runs-on: ubuntu-latest
+    needs: [env_workflow]
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v3
+        with: 
+          ref: ${{github.ref_name}}
+          path: app
+
+      - name: Check out helmchart
+        uses: actions/checkout@v3
+        with:
+          repository:  ${{needs.env_workflow.outputs.HELM_TEMPLATE_REPO}} 
+          ref:  ${{needs.env_workflow.outputs.HELM_TEMPLATE_BRANCH}}
+          path: helmchart
+
+      - name: Check out helmvalue
+        uses: actions/checkout@v3
+        with:
+          repository: ${{needs.env_workflow.outputs.HELM_VALUES_REPO}} 
+          ref: ${{needs.env_workflow.outputs.HELM_VALUES_BRANCH}} 
+          path: helmvalue
+
+      - name: Save workspace
+        run: |
+          touch workspace.tar.gz
+          tar --exclude=workspace.tar.gz -czf workspace.tar.gz .
+        continue-on-error: true
+
+      - name: Upload workspace artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: workspace
+          path: workspace.tar.gz
+
   Package_Versioning:
     needs: env_workflow
     name: Package versioning
@@ -87,6 +123,7 @@ jobs:
       AZURE_CONTAINER_NAME: ${{needs.env_workflow.outputs.BLOB_CONTAINER_NAME_AZ_BATCH}}
       APP_NAME: ${{github.event.repository.name}}
       APP_VERSION: ${{ needs.Package_Versioning.outputs.PACKAGE_VERSION_NODEJS }} # use the output (app version) from package-versioning.yaml
+      workspace: ${{needs.env_workflow.outputs.Workspace_Dir}}
 
   Git_Push_Version:
     needs: [Upload_Storage_Account,Nodejs_Build,Package_Versioning]
